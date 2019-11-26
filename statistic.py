@@ -1,20 +1,4 @@
 
-
-class Statistic:
-    def __init__(self, formula):
-        self.format_name = format_name
-        self.formula = formula
-    
-    def calculate(self, ls: list):
-        self.value, self.output = self.formula(ls)
-    
-    def print(self):
-        print(self.output)
-    
-    def value(self):
-        return self.value
-
-
 def mean(ls):
     mean = sum(ls) / len(ls)
     return mean, "Mean: {}".format(mean)
@@ -26,6 +10,7 @@ def total(ls):
 def std(ls):
     if len(ls) < 1:
         return -1, "Unable to find standard deviation of length-1 list."
+    mean = sum(ls) / len(ls)
     std = (sum([(outcome - mean) ** 2 for outcome in ls]) / (len(ls) - 1)) ** .5
     return std, "Standard Deviation: {:0.2f}".format(std)
 
@@ -33,13 +18,13 @@ def median(ls):
     median = (ls[int(len(ls)/2)] + ls[int((len(ls) - 1)/2)])/2
     return median, "Median: {}".format(median)
 
-def min(ls):
-    min = min(ls)
-    return min, "Minimum: {}".format(min)
+def minimum(ls):
+    minv = min(ls)
+    return minv, "Minimum: {}".format(minv)
 
-def max(ls):
-    max = max(ls)
-    return max, "Maximum: {}".format(max)
+def maximum(ls):
+    maxv = max(ls)
+    return maxv, "Maximum: {}".format(maxv)
 
 def range(ls):
     range = max(ls) - min(ls)
