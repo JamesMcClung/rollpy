@@ -11,10 +11,11 @@ class Group(list):
 
     def __init__(self, args, layer=0):
         if len(args) == 0:
-            raise Exception()
+            raise ParseException("Unable to parse empty group.")
         self.depth = layer
 
         self.all_tags = {t:None for t in tags.all_tag_strs}
+        self.askedForStat = False
 
         i = 0
         firstStatFound = None
@@ -27,6 +28,7 @@ class Group(list):
                 self.all_tags[arg] = tag
                 if arg in tags.stat_tag_strs:
                     firstStatFound = firstStatFound or arg
+                    self.askedForStat = True
                 if arg in tags.supertag_strs:
                     args.insert(i+1, arg[1:])
             else: 
@@ -84,7 +86,7 @@ class Group(list):
         Returns the sum of the outcomes of each member by default."""
 
         outcomes = []
-        print_rolls = self.all_tags[tags.VERBOSE] or len(self) == 1 or self.depth == 0
+        print_rolls = self.all_tags[tags.VERBOSE] or (not self.askedForStat and (len(self) == 1 or self.depth == 0))
         print_stats = not (self.all_tags[tags.HIDE] or len(self) == 1)
         lastitemwasgroup = False
 

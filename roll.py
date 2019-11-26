@@ -95,5 +95,5 @@ class Roll:
         if self.ceil:
             s += ",h{}".format(self.ceil)
         if self.floor:
-            s += ",l{}".format(self.ceil)
+            s += ",l{}".format(self.floor)
         return s
