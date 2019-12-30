@@ -1,7 +1,7 @@
 import sys
 import re
 from random import randint
-from macros import macros
+import macros as mac
 from group import Group
 from roll import Roll
 import character
@@ -24,7 +24,7 @@ if args[0] == "!":
         if args[2] == "set":
             name = args[3]
             character.set_current_character(name)
-            print("Set character to", name)
+            print("Set current character to", name)
         
         # making new character, or overriding existing character
         elif args[2] == "make":
@@ -33,12 +33,12 @@ if args[0] == "!":
         # viewing current or specified character stats and proficiencies
         elif args[2] == "view":
             name = util.list_get(args, 3, default_func=character.get_current_character_name)
-            print(str(character.load_characters()[name]))
+            print(str(character.characters[name]))
         
         # display a list of all characters
         elif args[2] == "list":
             current = character.get_current_character_name()
-            charlist = list(character.load_characters().keys())
+            charlist = list(character.characters.keys())
             charlist[charlist.index(current)] += " (current)"
             print("List of characters:")
             print("  " + "\n  ".join(charlist))
@@ -52,9 +52,35 @@ if args[0] == "!":
         elif args[2] == "update":
             name = util.list_get(args, 3, default_func=character.get_current_character_name)
             character.update_character(name)
-            
+        
+        # character macro management
+        elif args[2] == "macro":
 
-    raise SystemExit() # exit program
+            # make or remake a character macro
+            if args[3] == "make":
+                character.make_character_macro(character.get_current_character_name())
+        
+            # delete an existing character macro
+            if args[3] == "delete":
+                character.delete_character_macro(character.get_current_character_name())
+    
+    # macro management
+    elif args[1] == "macro":
+
+        # make or remake macro
+        if args[2] == "make":
+            mac.make_macro()
+        
+        # delete macro
+        elif args[2] == "delete":
+            mac.delete_macro()
+        
+        # list macros
+        elif args[2] == "list":
+            mac.list_macros()
+
+    # exit program
+    raise SystemExit()
 
 # if not a command, clean up the arguments and expand macros before parsing
 
@@ -74,10 +100,13 @@ def expand_delimiters(arg: str, delimiters: list) -> list:
 def expand_macro(arg: str) -> list:
     """Returns whatever the macro expands into, or if not a macro, returns the arg."""
     # normal macro
-    if arg in macros:
-        return macros[arg].split()
+    if arg in mac.macros:
+        return mac.macros[arg].split()
     # character roll, or not a macro at all
-    return [character.get_current_character_roll(arg) or arg]
+    charroll = character.get_current_character_roll(arg)
+    if charroll:
+        return charroll.split()
+    return [arg]
 
 # expand everything
 util.expand(args, [expand_macro, lambda arg: expand_delimiters(arg, delimiters)])

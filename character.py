@@ -9,8 +9,8 @@ stats = ["str", "dex", "con", "int", "wis", "cha"]
 saves = {stat + "save":stat for stat in stats}
 skills = {
     "acrobatics":"dex",
-    "arcana":"int",
     "animalhandling":"wis",
+    "arcana":"int",
     "athletics":"str",
     "deception":"cha",
     "history":"int",
@@ -19,9 +19,9 @@ skills = {
     "investigation":"int",
     "medicine":"wis",
     "nature":"int",
+    "perception":"wis",
     "performance":"cha",
     "persuasion":"cha",
-    "perception":"wis",
     "religion":"int",
     "sleightofhand":"dex",
     "stealth":"dex",
@@ -41,30 +41,45 @@ class Character:
         self.modifiers = mods
         self.save_proficiencies = saveprofs
         self.skill_proficiencies = skillprofs
+        self.macros = {}
     
     def get_roll(self, macro: str) -> str:
         """
-        macro: e.g. "acro" or "ints" or "dex"\n
+        macro: e.g. "acro" or "ints" or "dex", or a character-specific macro\n
         return: a die string, e.g. "1d20+2"
         """
+        # check character-specfic macro
+        if macro in self.macros:
+            return self.macros[macro]
+
+        # check attributes
+        bonus = None
         if macro in stats:
             bonus = self.modifiers[macro]
         elif macro in saves:
             bonus = self.modifiers[saves[macro]] + self.proficiency_bonus * self.save_proficiencies.get(macro, 0)
         elif macro in skills:
             bonus = self.modifiers[skills[macro]] + self.proficiency_bonus * self.skill_proficiencies.get(macro, 0)
-        return "1d20{0:+d}".format(int(bonus))
+        if not bonus is None:
+            return "1d20{0:+d}".format(int(bonus))
+        
+        # no matches for macro
+        return None
     
     def __str__(self):
         s = "Name: {}\n".format(self.name)
         s += "Proficiency bonus: {}\n".format(self.proficiency_bonus)
         s += "|  " + "\t|  ".join(stats) + "\t|\n"
         s += "|  " + "\t|  ".join([str(self.modifiers[stat]) for stat in stats]) + "\t|\n"
-        s += "save proficiencies:\n  " + "\n  ".join([save + (' x{}'.format(self.save_proficiencies[save]) if self.save_proficiencies[save] != 1 else "") for save in saves if self.save_proficiencies[save] != 0]) + "\n"
-        s += "skill proficiencies:\n  " + "\n  ".join([skill + (' x{}'.format(self.skill_proficiencies[skill]) if self.skill_proficiencies[skill] != 1 else "") for skill in skills if self.skill_proficiencies[skill] != 0])
+        s += "Save proficiencies:\n  " + "\n  ".join([save + (' x{}'.format(self.save_proficiencies[save]) if self.save_proficiencies[save] != 1 else "") for save in saves if self.save_proficiencies[save] != 0]) + "\n"
+        s += "Skill proficiencies:\n  " + "\n  ".join([skill + (' x{}'.format(self.skill_proficiencies[skill]) if self.skill_proficiencies[skill] != 1 else "") for skill in skills if self.skill_proficiencies[skill] != 0])
+
+        if self.macros:
+            s += "\nMacros:\n  "
+            s += "\n  ".join([macro + ": " + value for macro, value in self.macros.items()])
         return s
     
-    def update(self, attribute: str, newval) -> bool:
+    def update(self, attribute: str, newval):
         """Updates the specified attribute to have the new value. E.g. update("str", 2)"""
         if attribute in self.modifiers:
             self.modifiers[attribute] = int(newval)
@@ -75,17 +90,26 @@ class Character:
         elif "bonus" in attribute or "prof" in attribute:
             self.proficiency_bonus = int(newval)
         else:
-            return False
-        return True
+            raise KeyError(attribute)
+    
+    def add_macro(self, macro: str, value: str):
+        """Adds the macro to the character. This can be used to override attribute macros, or just to add new functionality altogether."""
+        self.macros[macro] = value
+    
+    def delete_macro(self, macro: str):
+        del self.macros[macro]
         
 # Character usage
 
-def load_characters() -> dict:
+def _load_characters() -> dict:
     """return: map from name to Character"""
     if not path.exists(characters_file_path):
         return {}
     with open(characters_file_path, "rb") as fp:
         return pickle.load(fp)
+    
+# load the characters only once at the start of execution
+characters = _load_characters()
 
 def save_characters(characters: dict):
     """Saves a map from name to Character to file"""
@@ -94,8 +118,7 @@ def save_characters(characters: dict):
 
 def get_character_roll(name: str, macro: str) -> str:
     """Loads the specified character and makes a roll. Returns none if invalid."""
-    characters = load_characters()
-    if name in characters and (macro in skills or macro in stats or macro in saves):
+    if name in characters:
         return characters[name].get_roll(macro)
     else:
         return None
@@ -120,7 +143,6 @@ def get_current_character_roll(macro: str) -> str:
 
 def save_character(character: Character):
     """Saves a character so it can be loaded in the future."""
-    characters = load_characters()
     characters[character.name] = character
     save_characters(characters)
 
@@ -142,14 +164,28 @@ def make_character(name: str = None):
 
 def delete_character(name: str):
     """Deletes a character from file."""
-    characters = load_characters()
     del characters[name]
     save_characters(characters)
 
 def update_character(name: str):
-    characters = load_characters()
+    print("Updating", name)
     attribute = input("Attribute: ")
     newval = input("New value: ")
     characters[name].update(attribute, newval)
     save_characters(characters)
     print("Successfully updated", name)
+
+def make_character_macro(name: str):
+    print("Making macro for", name)
+    macro = input("Macro: ")
+    value = input("Value: ")
+    characters[name].add_macro(macro, value)
+    save_characters(characters)
+    print("Successfully added macro to", name)
+
+def delete_character_macro(name: str):
+    print("Deleting macro from " + name)
+    macro = input("Macro to delete: ")
+    characters[name].delete_macro(macro)
+    save_characters(characters)
+    print("Successfully deleted", macro, "from", name)

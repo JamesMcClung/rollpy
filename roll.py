@@ -11,6 +11,7 @@ class Roll:
     floor_regex = re.compile(r"(?P<take>l(?P<val>\d*))")                  # finds the bottom n dice to take
 
     def __init__(self, s: str):
+        """Initializes a new roll based on the given input string (e.g. "2d20h1")"""
         self.count, counttake = Roll.get_val(Roll.count_regex, s, 1, 1)
         self.die, dietake = Roll.get_val(Roll.die_regex, s, 20)
         self.bonus, bonustake = Roll.get_val(Roll.bonus_regex, s, 0)
@@ -20,6 +21,7 @@ class Roll:
 
         input = s
         self.is_valid = True
+        # ensure that every part of the input string is used precisely once (i.e., that the string is valid)
         takes = [counttake, dietake, bonustake, rerolltake, ceiltake, floortake]
         for take in takes:
             if take in s:
@@ -79,6 +81,8 @@ class Roll:
         return total
     
     def get_die_roll(self) -> (int, int):
+        """Rolls a single die, rerolling if below the reroll threshhold.\n
+        Returns a tuple of ints: (final number on die, number on die before reroll [or None])"""
         result = randint(1, self.die)
         if result <= self.reroll:
             return result, randint(1, self.die)
