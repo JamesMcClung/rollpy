@@ -25,6 +25,7 @@ skills = {
     "religion":"int",
     "sleightofhand":"dex",
     "stealth":"dex",
+    "survival":"wis",
     "initiative":"dex"}
 
 class Character:
@@ -81,11 +82,11 @@ class Character:
     
     def update(self, attribute: str, newval):
         """Updates the specified attribute to have the new value. E.g. update("str", 2)"""
-        if attribute in self.modifiers:
+        if attribute in stats:
             self.modifiers[attribute] = int(newval)
-        elif attribute in self.save_proficiencies:
+        elif attribute in saves:
             self.save_proficiencies[attribute] = float(newval)
-        elif attribute in self.skill_proficiencies:
+        elif attribute in skills:
             self.skill_proficiencies[attribute] = float(newval)
         elif "bonus" in attribute or "prof" in attribute:
             self.proficiency_bonus = int(newval)

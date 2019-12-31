@@ -2,16 +2,6 @@ from util import PATH_TO_DIR
 from os import path
 import json
 
-# macros = {
-#     "a":"2d20h1",
-#     "da":"2d20l1",
-#     "adv":"x2 -max -verbose",
-#     "dis":"x2 -min -verbose",
-#     "stat":"4d6h3",
-#     "char":"stat stat stat stat stat stat",
-#     "pizza":"2 2 13 -hide",
-# }
-
 macros_file_path = PATH_TO_DIR + "/macros.json"
 
 def _load_macros() -> dict:
