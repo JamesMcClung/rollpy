@@ -85,7 +85,10 @@ if args[0] == "!":
 # if not a command, clean up the arguments and expand macros before parsing
 
 # a list of characters that partition individual arguments
-delimiters = ["[", "]"]
+comma = ','
+left_paren = util.LEFT_PAREN
+right_paren = util.RIGHT_PAREN
+delimiters = [left_paren, right_paren, comma]
 
 def expand_delimiters(arg: str, delimiters: list) -> list:
     """Partitions the given arg into a list of subarguments using the given delimiters, which are included in the resulting list."""
@@ -110,6 +113,45 @@ def expand_macro(arg: str) -> list:
 
 # expand everything
 util.expand(args, [expand_macro, lambda arg: expand_delimiters(arg, delimiters)])
+
+# interpret commas for grouping
+i = 0
+while i < len(args):
+    if args[i] == comma:
+        # find indices of all other commas at this depth, and where depth starts and ends
+        comma_indices = [i]
+
+        # find where this depth started
+        depth = 0
+        j = i
+        while depth >= 0 and j > 0:
+            j -= 1
+            if args[j] == right_paren:
+                depth += 1
+            elif args[j] == left_paren:
+                depth -= 1
+        depth_start = j
+
+        # find where this depth ends, and any other commas at this depth
+        depth = 0
+        j = i
+        while depth >= 0 and j < len(args)-1:
+            j += 1
+            if args[j] == left_paren:
+                depth += 1
+            elif args[j] == right_paren:
+                depth -= 1
+            elif args[j] == comma and depth == 0:
+                comma_indices.append(j)
+        depth_end = j
+
+        # remove commas and insert brackets
+        args.insert(depth_end+1, right_paren)
+        for index in reversed(comma_indices):
+            args[index:index+1] = [right_paren, left_paren]
+        args.insert(depth_start, left_paren)
+
+    i += 1
 
 # now parse the rolls
 try:

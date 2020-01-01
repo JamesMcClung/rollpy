@@ -83,6 +83,8 @@ class Roll:
     def get_die_roll(self) -> (int, int):
         """Rolls a single die, rerolling if below the reroll threshhold.\n
         Returns a tuple of ints: (final number on die, number on die before reroll [or None])"""
+        if self.die == 0:
+            return 0, (0 if self.reroll else None)
         result = randint(1, self.die)
         if result <= self.reroll:
             return result, randint(1, self.die)

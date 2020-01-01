@@ -1,17 +1,17 @@
 import re
 from roll import Roll
-from util import ParseException
+import util
 import tags
 
 multiplier_regex = re.compile(r"^x(\d+)$")
-left_sep = "["
-right_sep = "]"
+left_sep = util.LEFT_PAREN
+right_sep = util.RIGHT_PAREN
 
 class Group(list):
 
     def __init__(self, args, layer=0):
         if len(args) == 0:
-            raise ParseException("Unable to parse empty group.")
+            raise util.ParseException("Unable to parse empty group.")
         self.depth = layer
 
         self.all_tags = {t:None for t in tags.all_tag_strs}
@@ -48,7 +48,7 @@ class Group(list):
                             i = j # hacky way to get around the increment later in the loop
                             break
                     if layer > 0:
-                        raise ParseException("Unable to parse group from '{}' due to missing '{}'".format(" ".join(args), right_sep))
+                        raise util.ParseException("Unable to parse group from '{}' due to missing '{}'".format(" ".join(args), right_sep))
                 else:
                     # parse roll
                     self.append(Roll(arg))

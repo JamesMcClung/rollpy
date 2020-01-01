@@ -3,6 +3,8 @@ from os import path
 # Utility fields
 
 PATH_TO_DIR = path.dirname(path.realpath(__file__))
+LEFT_PAREN = "["
+RIGHT_PAREN = "]"
 
 
 
