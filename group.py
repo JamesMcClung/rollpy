@@ -2,6 +2,7 @@ import re
 from roll import Roll
 import util
 import tags
+import modifier
 
 multiplier_regex = re.compile(r"^x(\d+)$")
 left_sep = util.LEFT_PAREN
@@ -31,12 +32,17 @@ class Group(list):
                     self.askedForStat = True
                 if arg in tags.supertag_strs:
                     args.insert(i+1, arg[1:])
-            else: 
+            elif modifier.is_modifier(arg):
+                if self:
+                    modifier.modify(self[-1], arg)
+                else:
+                    raise util.ParseException("Modifier '{}' requires something to modify.".format(arg))
+            else:
                 # handle multipliers
-                match = multiplier_regex.search(arg)
-                if match:
+                multiplier_match = multiplier_regex.search(arg)
+                if multiplier_match:
                     # parse multiplier
-                    self[-1:] = [self[-1]] * int(match.group(1))
+                    self[-1:] = [self[-1]] * int(multiplier_match.group(1))
                 elif arg == left_sep:
                     # parse grouping symbol
                     layer = 1

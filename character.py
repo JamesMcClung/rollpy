@@ -1,12 +1,14 @@
 import pickle
 from os import path, getcwd
 from util import PATH_TO_DIR
+import modifier
 
 characters_file_path = PATH_TO_DIR + "/characters.txt"
 current_character_file_path = PATH_TO_DIR + "/currentCharacter.txt"
 
 stats = ["str", "dex", "con", "int", "wis", "cha"]
 saves = {stat + "save":stat for stat in stats}
+mods = {stat + "mod":stat for stat in stats}
 skills = {
     "acrobatics":"dex",
     "animalhandling":"wis",
@@ -29,17 +31,17 @@ skills = {
     "initiative":"dex"}
 
 class Character:
-    def __init__(self, name: str, mods: dict, proficiency_bonus: int, saveprofs: dict, skillprofs: dict):
+    def __init__(self, name: str, modifiers: dict, proficiency_bonus: int, saveprofs: dict, skillprofs: dict):
         """
         name: character's name as str
-        mods: map from score abbreviation (e.g. "dex") to modifier as int\n
+        modifiers: map from score abbreviation (e.g. "dex") to modifier as int\n
         proficiency_bonus: proficienty bonus as int\n
         saveprofs: map from e.g. "strsave" to number of times proficiency is applied, as float\n
         skillprofs: map from e.g. "arcana" to number of times proficiency is applied, as float
         """
         self.name = name
         self.proficiency_bonus = proficiency_bonus
-        self.modifiers = mods
+        self.modifiers = modifiers
         self.save_proficiencies = saveprofs
         self.skill_proficiencies = skillprofs
         self.macros = {}
@@ -63,6 +65,12 @@ class Character:
             bonus = self.modifiers[skills[macro]] + self.proficiency_bonus * self.skill_proficiencies.get(macro, 0)
         if not bonus is None:
             return "1d20{0:+d}".format(int(bonus))
+        
+        # check if modifier (the dnd kind, not the rollpy kind)
+        if macro in mods:
+            return modifier.get_bonus_modifier(self.modifiers[mods[macro]])
+        elif macro == "prof":
+            return modifier.get_bonus_modifier(self.proficiency_bonus)
         
         # no matches for macro
         return None
@@ -187,6 +195,9 @@ def make_character_macro(name: str):
 def delete_character_macro(name: str):
     print("Deleting macro from " + name)
     macro = input("Macro to delete: ")
-    characters[name].delete_macro(macro)
-    save_characters(characters)
-    print("Successfully deleted", macro, "from", name)
+    try:
+        characters[name].delete_macro(macro)
+        save_characters(characters)
+        print("Successfully deleted", macro, "from", name)
+    except KeyError:
+        print("{} does not have the macro '{}'".format(name, macro))

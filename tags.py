@@ -24,7 +24,7 @@ supertag_strs = ["-" + tag for tag in stat_tag_strs + print_tag_strs + special_t
 
 all_tag_strs = special_tag_strs + stat_tag_strs + print_tag_strs + supertag_strs
 
-_tag_regex = re.compile(r"^--?\w+")
+_tag_regex = re.compile(r"^--?\w+$")
 def isTag(s: str) -> bool:
     """Returns whether or not the given string is a possible tag."""
     return not _tag_regex.match(s) is None
