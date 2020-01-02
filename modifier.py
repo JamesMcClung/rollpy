@@ -13,6 +13,7 @@ def is_modifier(arg: str) -> bool:
 # regexes used to extract information from modifier strings
 _bonus_regex = re.compile(r"^\.(?P<val>[\+-]\d+)$")
 _count_regex = re.compile(r"^\.c(?P<type>[x\+])(?P<val>\d+)$")
+_highlow_regex = re.compile(r"^\.(?P<type>[hl])(?P<val>\d+)$")
 
 def modify(roll, arg: str):
     """Modifies the given roll (or rolls, if a group was passed) according to the given arg (a modifier)."""
@@ -34,6 +35,14 @@ def modify(roll, arg: str):
             roll.count *= val
         else:
             roll.count += val
+    elif _highlow_regex.match(arg):
+        # change the number of dice to take, whether the highest or lowest
+        type = _highlow_regex.search(arg).group("type")
+        val = int(_highlow_regex.search(arg).group("val"))
+        if type == "h":
+            roll.ceil = val
+        else:
+            roll.floor = val
     else:
         raise util.ParseException("Invalid modifier: '{}'".format(arg))
 
@@ -49,3 +58,13 @@ def get_count_modifier(mod: int, type: str = "times"):
         return MODIFIER_INDICATOR + "cx" + str(mod)
     elif type == "plus":
         return MODIFIER_INDICATOR + "c+" + str(mod)
+
+def get_highlow_modifier(val: int, type: str):
+    """Returns a valid reroll modifier.\n
+    val: a positive integer to set the number of dice to use\n
+    type: either 'h' or 'l' to take the highest or lowest dice, respectively
+    """
+    if type == 'h':
+        return MODIFIER_INDICATOR + 'h' + str(val)
+    elif type == 'l':
+        return MODIFIER_INDICATOR + 'l' + str(val)
