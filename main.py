@@ -122,7 +122,6 @@ def split_macro(macro: str) -> list:
         elif words[i][-1] == "\\":
             words[i] = words[i][:-1] + " " + words.pop(i+1)
         i += 1
-    print(words)
     return words
             
 
