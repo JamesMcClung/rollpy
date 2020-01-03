@@ -31,7 +31,9 @@ def isTag(s: str) -> bool:
 
 class Tag:
     """A superclass for all tags. All tags have an associated content (usually just True, but could also be a formula or another tag)"""
-    def __init__(self, keystr, contents=True):
+    def __init__(self, keystr: str, contents=True):
+        """keystr: the tag, e.g. '-mean'\n
+        contents: what the tag contains; contains True by default."""
         self.contents = contents
         self.keystr = keystr
 

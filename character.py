@@ -1,7 +1,8 @@
 import pickle
 from os import path, getcwd
-from util import PATH_TO_DIR
+from util import PATH_TO_DIR, ParseException
 import modifier
+from macros import assert_valid_macro
 
 characters_file_path = PATH_TO_DIR + "/characters.txt"
 current_character_file_path = PATH_TO_DIR + "/currentCharacter.txt"
@@ -184,20 +185,53 @@ def update_character(name: str):
     save_characters(characters)
     print("Successfully updated", name)
 
-def make_character_macro(name: str):
-    print("Making macro for", name)
-    macro = input("Macro: ")
-    value = input("Value: ")
+def rename_character(oldname: str, newname: str = None):
+    if not oldname in characters:
+        print("Failure: no character is named '{}'".format(oldname))
+        return
+
+    if not newname:
+        newname = input("New name for {}: ".format(oldname))
+    if newname in characters:
+        yes, no = 'y', 'n'
+        overwrite = input("'{}' is already a character. Overwrite {}? ({}/{}): ".format(newname, newname, yes, no))
+        while overwrite != yes and overwrite != no:
+            overwrite = input("Please enter '{}' for yes or '{}' for no: ".format(yes, no))
+        if overwrite == no:
+            print("Did not rename {}.".format(oldname))
+            return
+
+    characters[newname] = characters.pop(oldname)
+    if get_current_character_name() == oldname:
+        set_current_character(newname)
+    save_characters(characters)
+    print("Successfully renamed {} to {}".format(oldname, newname))
+
+
+def make_character_macro(name: str, macro: str = None, value: str = None):
+    """Makes or remakes a macro for the specified character. If no macro is provided, the user is asked. If value is provided, so too must macro."""
+    if macro:
+        print("Making macro '{}' for {}".format(macro, name))
+    else:
+        print("Making macro for", name)
+        macro = input("Macro: ")
+    assert_valid_macro(macro)
+    if not value:
+        value = input("Value: ")
     characters[name].add_macro(macro, value)
     save_characters(characters)
-    print("Successfully added macro to", name)
+    print("Successfully added macro '{}' with value '{}' to {}".format(macro, value, name))
 
-def delete_character_macro(name: str):
-    print("Deleting macro from " + name)
-    macro = input("Macro to delete: ")
+def delete_character_macro(name: str, macro: str = None):
+    """Deletes a macro from the specified character. If no macro is provided, the user is asked."""
+    if macro:
+        print("Deleting macro '{}' from {}".format(macro, name))
+    else:
+        macro = input('Macro to delete from {}:'.format(name))
+
     try:
         characters[name].delete_macro(macro)
         save_characters(characters)
-        print("Successfully deleted", macro, "from", name)
+        print("Successfully deleted macro '{}' from {}".format(macro, name))
     except KeyError:
-        print("{} does not have the macro '{}'".format(name, macro))
+        raise ParseException("Failure: {} does not have the macro '{}'".format(name, macro))

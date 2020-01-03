@@ -10,10 +10,10 @@ right_sep = util.RIGHT_PAREN
 
 class Group(list):
 
-    def __init__(self, args, layer=0):
+    def __init__(self, args, depth=0):
         if len(args) == 0:
             raise util.ParseException("Unable to parse empty group.")
-        self.depth = layer
+        self.depth = depth
 
         self.all_tags = {t:None for t in tags.all_tag_strs}
         self.askedForStat = False
@@ -24,40 +24,49 @@ class Group(list):
             arg = args[i]
 
             # handle tags
-            tag = tags.get_tag(arg, args[i+1:])
-            if tag:
+            if tag := tags.get_tag(arg, args[i+1:]):
                 self.all_tags[arg] = tag
                 if arg in tags.stat_tag_strs:
                     firstStatFound = firstStatFound or arg
                     self.askedForStat = True
                 if arg in tags.supertag_strs:
                     args.insert(i+1, arg[1:])
+            
+            # handle modifiers
             elif modifier.is_modifier(arg):
-                if self:
+                if self: # if there is anything to modify
                     modifier.modify(self[-1], arg)
                 else:
-                    raise util.ParseException("Modifier '{}' requires something to modify.".format(arg))
-            else:
-                # handle multipliers
-                multiplier_match = multiplier_regex.search(arg)
-                if multiplier_match:
-                    # parse multiplier
+                    raise util.ParseException("Error: modifier '{}' requires something to modify.".format(arg))
+
+            # handle multipliers
+            elif multiplier_match := multiplier_regex.search(arg):
+                if self: # if there is anything to modify
                     self[-1:] = [self[-1]] * int(multiplier_match.group(1))
-                elif arg == left_sep:
-                    # parse grouping symbol
-                    layer = 1
-                    for j, arg2 in enumerate(args[i+1:]):
-                        j += i+1
-                        layer += 1 if arg2 == left_sep else (-1 if arg2 == right_sep else 0)
-                        if layer == 0:
-                            self.append(Group(args[i+1:j], self.depth + 1))
-                            i = j # hacky way to get around the increment later in the loop
-                            break
-                    if layer > 0:
-                        raise util.ParseException("Unable to parse group from '{}' due to missing '{}'".format(" ".join(args), right_sep))
                 else:
-                    # parse roll
-                    self.append(Roll(arg))
+                    raise util.ParseException("Error: multiplier '{}' requires something to multiply.".format(arg))
+            
+            # handle separators for grouping
+            elif arg == left_sep:
+                depth = 1 # relative depth
+                j = i+1
+                while depth > 0:
+                    j += 1
+                    if j == len(args):
+                        raise util.ParseException("Unable to parse group from '{}' due to missing '{}'".format(" ".join(args), right_sep))
+
+                    if args[j] == right_sep:
+                        depth -= 1
+                    elif args[j] == left_sep:
+                        depth += 1
+                self.append(Group(args[i+1:j], self.depth + 1))
+                i = j
+
+            # assume it is a normal roll
+            else:
+                self.append(Roll(arg))
+            
+            # last line of code in the loop
             i += 1
         
         if not self.all_tags[tags.YIELD]:
@@ -66,7 +75,8 @@ class Group(list):
         self.__apply_supertags(self.all_tags)
     
     def __set_yield(self, stat: str):
-        self.all_tags[tags.YIELD] = tags.Tag(tags.YIELD, stat)
+        """Determines what the group returns upon execution"""
+        self.all_tags[tags.YIELD] = tags.Tag(tags.YIELD, contents=stat)
         self.all_tags[stat] = tags.get_tag(stat, [])
     
     def __apply_supertags(self, _tags:list):

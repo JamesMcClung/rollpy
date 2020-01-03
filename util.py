@@ -45,6 +45,4 @@ def list_get(ls: list, index: int, default_func=None, default=None):
         generated_default = default_func()
         if generated_default:
             return generated_default
-    if default:
-        return default
-    raise IndexError()
+    return default

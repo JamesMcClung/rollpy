@@ -10,28 +10,28 @@ class Roll:
     ceil_regex = re.compile(r"(?P<take>h(?P<val>\d*))")                   # finds the top n dice to take
     floor_regex = re.compile(r"(?P<take>l(?P<val>\d*))")                  # finds the bottom n dice to take
 
-    def __init__(self, s: str):
+    def __init__(self, arg: str):
         """Initializes a new roll based on the given input string (e.g. "2d20h1")"""
-        self.count, counttake = Roll.get_val(Roll.count_regex, s, 1, 1)
-        self.die, dietake = Roll.get_val(Roll.die_regex, s, 20)
-        self.bonus, bonustake = Roll.get_val(Roll.bonus_regex, s, 0)
-        self.reroll, rerolltake = Roll.get_val(Roll.reroll_regex, s, 0, 1)
-        self.ceil, ceiltake = Roll.get_val(Roll.ceil_regex, s, 0, 1)
-        self.floor, floortake = Roll.get_val(Roll.floor_regex, s, 0, 1)
+        self.count, counttake = Roll.get_val(Roll.count_regex, arg, 1, 1)
+        self.die, dietake = Roll.get_val(Roll.die_regex, arg, 20)
+        self.bonus, bonustake = Roll.get_val(Roll.bonus_regex, arg, 0)
+        self.reroll, rerolltake = Roll.get_val(Roll.reroll_regex, arg, 0, 1)
+        self.ceil, ceiltake = Roll.get_val(Roll.ceil_regex, arg, 0, 1)
+        self.floor, floortake = Roll.get_val(Roll.floor_regex, arg, 0, 1)
 
-        input = s
         self.is_valid = True
         # ensure that every part of the input string is used precisely once (i.e., that the string is valid)
         takes = [counttake, dietake, bonustake, rerolltake, ceiltake, floortake]
+        taken_arg = arg
         for take in takes:
-            if take in s:
-                s = s.replace(take, "", 1)
+            if take in taken_arg:
+                taken_arg = taken_arg.replace(take, "", 1)
             else:
                 self.is_valid = False
-        if s:
+        if taken_arg:
             self.is_valid = False
         if not self.is_valid:
-            raise ParseException("Unable to parse '{}' as roll".format(input))
+            raise ParseException("Unable to parse '{}' as roll".format(arg))
 
     @staticmethod
     def get_val(regex, s: str, default_if_absent: int, default_if_empty: int = 0) -> (int, str):
@@ -103,3 +103,11 @@ class Roll:
         if self.floor:
             s += ",l{}".format(self.floor)
         return s
+    
+    def clone(self):
+        """Clones the roll, returning an identical Roll."""
+        newroll = Roll.__new__(Roll)
+        fields = [a for a in dir(self) if not a.startswith('__') and not callable(getattr(self, a))]
+        for field in fields:
+            dir(newroll)[field] = dir(self)[field]
+        return newroll

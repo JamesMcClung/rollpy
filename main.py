@@ -17,68 +17,76 @@ if not args:
 # interpret commands
 if args[0] == "!":
 
-    # character management
-    if args[1] == "char":
+    try:
+        # character management
+        if args[1] == "char":
 
-        # set current character
-        if args[2] == "set":
-            name = args[3]
-            character.set_current_character(name)
-            print("Set current character to", name)
-        
-        # making new character, or overriding existing character
-        elif args[2] == "make":
-            character.make_character()
-        
-        # viewing current or specified character stats and proficiencies
-        elif args[2] == "view":
-            name = util.list_get(args, 3, default_func=character.get_current_character_name)
-            print(str(character.characters[name]))
-        
-        # display a list of all characters
-        elif args[2] == "list":
-            current = character.get_current_character_name()
-            charlist = list(character.characters.keys())
-            charlist[charlist.index(current)] += " (current)"
-            print("List of characters:")
-            print("  " + "\n  ".join(charlist))
-        
-        # delete the specified character
-        elif args[2] == "delete":
-            name = args[3]
-            character.delete_character(name)
-        
-        # update the current or specified character
-        elif args[2] == "update":
-            name = util.list_get(args, 3, default_func=character.get_current_character_name)
-            character.update_character(name)
-        
-        # character macro management
-        elif args[2] == "macro":
+            # set current character
+            if args[2] == "set":
+                name = args[3]
+                character.set_current_character(name)
+                print("Set current character to", name)
+            
+            # making new character, or overriding existing character
+            elif args[2] == "make":
+                character.make_character()
+            
+            # viewing current or specified character stats and proficiencies
+            elif args[2] == "view":
+                name = util.list_get(args, 3, default_func=character.get_current_character_name)
+                print(str(character.characters[name]))
+            
+            # display a list of all characters
+            elif args[2] == "list":
+                current = character.get_current_character_name()
+                charlist = list(character.characters.keys())
+                charlist[charlist.index(current)] += " (current)"
+                print("List of characters:")
+                print("  " + "\n  ".join(charlist))
+            
+            # delete the specified character
+            elif args[2] == "delete":
+                name = args[3]
+                character.delete_character(name)
+            
+            # update the current or specified character
+            elif args[2] == "update":
+                name = util.list_get(args, 3, default_func=character.get_current_character_name)
+                character.update_character(name)
+            
+            # rename the current or specified character
+            elif args[2] == "rename":
+                newname = util.list_get(args, 4) or util.list_get(args, 3)
+                oldname = args[3] if len(args) == 5 else character.get_current_character_name()
+                character.rename_character(oldname, newname)
+            
+            # character macro management
+            elif args[2] == "macro":
 
-            # make or remake a character macro
-            if args[3] == "make":
-                character.make_character_macro(character.get_current_character_name())
+                # make or remake a character macro
+                if args[3] == "make":
+                    character.make_character_macro(character.get_current_character_name(), util.list_get(args, 4), " ".join(args[5:]))
+            
+                # delete an existing character macro
+                if args[3] == "delete":
+                    character.delete_character_macro(character.get_current_character_name(), util.list_get(args, 4))
         
-            # delete an existing character macro
-            if args[3] == "delete":
-                character.delete_character_macro(character.get_current_character_name())
-    
-    # macro management
-    elif args[1] == "macro":
+        # macro management
+        elif args[1] == "macro":
 
-        # make or remake macro
-        if args[2] == "make":
-            mac.make_macro()
-        
-        # delete macro
-        elif args[2] == "delete":
-            mac.delete_macro()
-        
-        # list macros
-        elif args[2] == "list":
-            mac.list_macros()
-
+            # make or remake macro
+            if args[2] == "make":
+                mac.make_macro(util.list_get(args, 3), " ".join(args[4:]))
+            
+            # delete macro
+            elif args[2] == "delete":
+                mac.delete_macro(util.list_get(args, 3))
+            
+            # list macros
+            elif args[2] == "list":
+                mac.list_macros()
+    except util.ParseException as e:
+        print(e)
     # exit program
     raise SystemExit()
 
@@ -101,14 +109,13 @@ def expand_delimiters(arg: str, delimiters: list) -> list:
     return [a for a in out if a] # remove empty strings
 
 def expand_macro(arg: str) -> list:
-    """Returns whatever the macro expands into, or if not a macro, returns the arg."""
+    """Returns a list of whatever the macro expands into, or if not a macro, just the arg in a list."""
+    # character macro
+    if charroll := character.get_current_character_roll(arg):
+        return charroll.split()
     # normal macro
     if arg in mac.macros:
         return mac.macros[arg].split()
-    # character roll, or not a macro at all
-    charroll = character.get_current_character_roll(arg)
-    if charroll:
-        return charroll.split()
     return [arg]
 
 # expand everything
