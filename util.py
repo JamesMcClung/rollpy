@@ -15,8 +15,13 @@ def intersperse(ls: list, sep):
     result[0::2] = ls
     return result
 
-def strikethrough(s: str) -> str:
+def make_strikethrough(s: str) -> str:
+    """Returns the given string but with ANSI strikethrough."""
     return "".join([c + '\u0336' for c in s])
+
+def make_bold(s: str) -> str:
+    """Returns the given string but with ANSI bold."""
+    return "\033[1m" + s + "\033[0m"
 
 class ParseException(Exception):
     pass

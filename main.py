@@ -65,7 +65,7 @@ if args[0] == "!":
 
                 # make or remake a character macro
                 if args[3] == "make":
-                    character.make_character_macro(character.get_current_character_name(), util.list_get(args, 4), " ".join(args[5:]))
+                    character.make_character_macro(character.get_current_character_name(), util.list_get(args, 4), " ".join([a.replace(" ", "\\ ") for a in args[5:]]))
             
                 # delete an existing character macro
                 if args[3] == "delete":
@@ -76,7 +76,7 @@ if args[0] == "!":
 
             # make or remake macro
             if args[2] == "make":
-                mac.make_macro(util.list_get(args, 3), " ".join(args[4:]))
+                mac.make_macro(util.list_get(args, 3), " ".join([a.replace(" ", "\\ ") for a in args[4:]]))
             
             # delete macro
             elif args[2] == "delete":
@@ -108,14 +108,32 @@ def expand_delimiters(arg: str, delimiters: list) -> list:
             out[-1] += c
     return [a for a in out if a] # remove empty strings
 
+def split_macro(macro: str) -> list:
+    """Splits the value of a macro. Identical to str.split(), except for the case where a macro expands into something that contains a space, which this handles properly."""
+    words = macro.split()
+    apos = "'"
+    i = 0
+    while i < len(words):
+        if apos in words[i]:
+            words[i] = words[i].replace(apos, "")
+            while not apos in words[i]:
+                words[i] += " " + words.pop(i+1)
+            words[i] = words[i].replace(apos, "")
+        elif words[i][-1] == "\\":
+            words[i] = words[i][:-1] + " " + words.pop(i+1)
+        i += 1
+    print(words)
+    return words
+            
+
 def expand_macro(arg: str) -> list:
     """Returns a list of whatever the macro expands into, or if not a macro, just the arg in a list."""
     # character macro
     if charroll := character.get_current_character_roll(arg):
-        return charroll.split()
+        return split_macro(charroll)
     # normal macro
     if arg in mac.macros:
-        return mac.macros[arg].split()
+        return split_macro(mac.macros[arg])
     return [arg]
 
 # expand everything
