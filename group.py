@@ -3,16 +3,52 @@ from roll import Roll
 import util
 import tags
 import modifier
+import expression
 
 multiplier_regex = re.compile(r"^x(\d+)$")
 left_sep = util.LEFT_PAREN
 right_sep = util.RIGHT_PAREN
+blank = '_'
+
+def evaluate_blank(args: list, i: int) -> str:
+    while blank in args[i]:
+        try:
+            if blank in args[i+1]:
+                # parse that blank first
+                evaluate_blank(args, i+1)
+
+            # replace blanks with next value after executed
+            if args[i+1] == left_sep:
+                # if the next arg is the beginning of a group, parse and execute the group
+                depth = 0
+                j = i+1
+                while depth >= 0:
+                    j += 1
+                    depth += 1 if args[j] == left_sep else (-1 if args[j] == right_sep else 0)
+                nextvalue = str(Group(args[i+2:j]).execute(print_rolls=False))
+                del args[i+1:j+1]
+            elif expression.is_expression(args[i+1]):
+                # if the arg is an expression, evaluate it
+                nextvalue = str(int(expression.parse_math(args[i+1])))
+                del args[i+1]
+            else:
+                # try to parse next arg as a roll
+                nextvalue = str(Roll(args[i+1]).execute(print_output=True))
+                del args[i+1]
+
+            # replace blank with resulting value
+            args[i] = args[i].replace(blank, nextvalue, 1)
+        except util.ParseException as e:
+            print(e)
+        # except Exception as e:
+        #     print(e)
+        #     raise util.ParseException("Failure: argument needed to fill in {} of '{}'".format(blank, args[i]))
 
 class Group(list):
 
     def __init__(self, args, depth=0):
         if len(args) == 0:
-            raise util.ParseException("Unable to parse empty group.")
+            raise util.ParseException("Failure: unable to parse empty group.")
         self.depth = depth
 
         self.all_tags = {t:None for t in tags.all_tag_strs}
@@ -21,6 +57,8 @@ class Group(list):
         i = 0
         firstStatFound = None
         while i < len(args):
+            evaluate_blank(args, i)
+
             arg = args[i]
 
             # handle tags
@@ -52,7 +90,7 @@ class Group(list):
                 j = i+1
                 while depth > 0:
                     j += 1
-                    if j == len(args):
+                    if j >= len(args):
                         raise util.ParseException("Unable to parse group from '{}' due to missing '{}'".format(" ".join(args), right_sep))
 
                     if args[j] == right_sep:
@@ -61,6 +99,10 @@ class Group(list):
                         depth += 1
                 self.append(Group(args[i+1:j], self.depth + 1))
                 i = j
+            
+            # check if it is an expression
+            elif expression.is_expression(arg):
+                self.append(expression.Expression(arg))
 
             # assume it is a normal roll
             else:

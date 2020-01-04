@@ -2,6 +2,7 @@ import pickle
 from os import path, getcwd
 from util import PATH_TO_DIR, ParseException
 import modifier
+import expression
 from macros import assert_valid_macro
 
 characters_file_path = PATH_TO_DIR + "/characters.txt"
@@ -69,7 +70,7 @@ class Character:
         
         # check if modifier (the dnd kind, not the rollpy kind)
         if macro in mods:
-            return modifier.get_bonus_modifier(self.modifiers[mods[macro]])
+            return expression.get_expression(self.modifiers[mods[macro]], label=macro)
         elif macro == "prof":
             return modifier.get_bonus_modifier(self.proficiency_bonus)
         

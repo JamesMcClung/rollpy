@@ -48,5 +48,5 @@ def list_macros():
 
 def assert_valid_macro(arg: str):
     """Raises a ParseException if given arg is not a valid macro (i.e., consists of only letters, numbers, and underscore)"""
-    if not re.match(r"^\w+$", arg):
+    if not re.match(r"^[/\w]+$", arg):
         raise ParseException("Invalid macro name: {}".format(arg))
