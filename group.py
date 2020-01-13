@@ -4,6 +4,7 @@ import util
 import tags
 import modifier
 import expression
+import table
 
 multiplier_regex = re.compile(r"^x(\d+)$")
 left_sep = util.LEFT_PAREN
@@ -12,37 +13,37 @@ blank = '_'
 
 def evaluate_blank(args: list, i: int) -> str:
     while blank in args[i]:
-        try:
-            if blank in args[i+1]:
-                # parse that blank first
-                evaluate_blank(args, i+1)
+        if i+1 == len(args):
+            raise util.ParseException("Failure: missing value for _ in '{}'".format(args[i]))
 
-            # replace blanks with next value after executed
-            if args[i+1] == left_sep:
-                # if the next arg is the beginning of a group, parse and execute the group
-                depth = 0
-                j = i+1
-                while depth >= 0:
-                    j += 1
-                    depth += 1 if args[j] == left_sep else (-1 if args[j] == right_sep else 0)
-                nextvalue = str(Group(args[i+2:j]).execute(print_rolls=False))
-                del args[i+1:j+1]
-            elif expression.is_expression(args[i+1]):
-                # if the arg is an expression, evaluate it
-                nextvalue = str(int(expression.parse_math(args[i+1])))
-                del args[i+1]
-            else:
-                # try to parse next arg as a roll
-                nextvalue = str(Roll(args[i+1]).execute(print_output=True))
-                del args[i+1]
+        if blank in args[i+1]:
+            # parse that blank first
+            evaluate_blank(args, i+1)
 
-            # replace blank with resulting value
-            args[i] = args[i].replace(blank, nextvalue, 1)
-        except util.ParseException as e:
-            print(e)
-        # except Exception as e:
-        #     print(e)
-        #     raise util.ParseException("Failure: argument needed to fill in {} of '{}'".format(blank, args[i]))
+        # replace blanks with next value after executed
+        if args[i+1] == left_sep:
+            # if the next arg is the beginning of a group, parse and execute the group
+            depth = 0
+            j = i+1
+            while depth >= 0:
+                j += 1
+                depth += 1 if args[j] == left_sep else (-1 if args[j] == right_sep else 0)
+            nextvalue = str(Group(args[i+2:j]).execute(print_rolls=False))
+            del args[i+1:j+1]
+        elif expression.is_expression(args[i+1]):
+            # if the arg is an expression, evaluate it
+            nextvalue = str(int(expression.parse_math(args[i+1])))
+            del args[i+1]
+        elif table.is_table(args[i+1]):
+            nextvalue = table.Table(args[i+1]).execute()
+            del args[i+1]
+        else:
+            # try to parse next arg as a roll
+            nextvalue = str(Roll(args[i+1]).execute(print_output=False))
+            del args[i+1]
+
+        # replace blank with resulting value
+        args[i] = args[i].replace(blank, nextvalue, 1)
 
 class Group(list):
 
@@ -61,8 +62,12 @@ class Group(list):
 
             arg = args[i]
 
+            # handle empty arg
+            if not arg:
+                pass
+
             # handle tags
-            if tag := tags.get_tag(arg, args[i+1:]):
+            elif tag := tags.get_tag(arg, args[i+1:]):
                 self.all_tags[arg] = tag
                 if arg in tags.stat_tag_strs:
                     firstStatFound = firstStatFound or arg
@@ -87,7 +92,7 @@ class Group(list):
             # handle separators for grouping
             elif arg == left_sep:
                 depth = 1 # relative depth
-                j = i+1
+                j = i
                 while depth > 0:
                     j += 1
                     if j >= len(args):
@@ -103,6 +108,10 @@ class Group(list):
             # check if it is an expression
             elif expression.is_expression(arg):
                 self.append(expression.Expression(arg))
+            
+            # check if it is a table
+            elif table.is_table(arg):
+                self.append(table.Table(arg))
 
             # assume it is a normal roll
             else:
@@ -150,15 +159,17 @@ class Group(list):
 
         # execute elements of group
         for item in self:
-            if isinstance(item, Roll) and print_rolls:
-                self.__align_next_print()
             if isinstance(item, Group) and not item.all_tags[tags.HIDE]:
                 if lastitemwasgroup:
                     print()
                 lastitemwasgroup = True
             else:
+                if print_rolls:
+                    self.__align_next_print()
                 lastitemwasgroup = False
-            outcomes.append(item.execute(print_rolls))
+            outcome = item.execute(print_rolls)
+            if not isinstance(item, table.Table):
+                outcomes.append(outcome)
 
         # calculate and print statistics as needed
         for stat in tags.stat_tag_strs:

@@ -33,7 +33,7 @@ skills = {
     "initiative":"dex"}
 
 class Character:
-    def __init__(self, name: str, modifiers: dict, proficiency_bonus: int, saveprofs: dict, skillprofs: dict):
+    def __init__(self, name: str, modifiers: dict, level: int, saveprofs: dict, skillprofs: dict):
         """
         name: character's name as str
         modifiers: map from score abbreviation (e.g. "dex") to modifier as int\n
@@ -42,7 +42,7 @@ class Character:
         skillprofs: map from e.g. "arcana" to number of times proficiency is applied, as float
         """
         self.name = name
-        self.proficiency_bonus = proficiency_bonus
+        self.level = level
         self.modifiers = modifiers
         self.save_proficiencies = saveprofs
         self.skill_proficiencies = skillprofs
@@ -57,7 +57,7 @@ class Character:
         if macro in self.macros:
             return self.macros[macro]
 
-        # check attributes
+        # check various rolls
         bonus = None
         if macro in stats:
             bonus = self.modifiers[macro]
@@ -72,14 +72,20 @@ class Character:
         if macro in mods:
             return expression.get_expression(self.modifiers[mods[macro]], label=macro)
         elif macro == "prof":
-            return modifier.get_bonus_modifier(self.proficiency_bonus)
+            return expression.get_expression(self.proficiency_bonus, label=macro)
+        elif macro == "level":
+            return expression.get_expression(self.level, label=macro)
         
         # no matches for macro
         return None
     
+    @property
+    def proficiency_bonus(self) -> int:
+        return 1 + (self.level + 3) // 4
+    
     def __str__(self):
         s = "Name: {}\n".format(self.name)
-        s += "Proficiency bonus: {}\n".format(self.proficiency_bonus)
+        s += "Level: {}\n".format(self.level)
         s += "|  " + "\t|  ".join(stats) + "\t|\n"
         s += "|  " + "\t|  ".join([str(self.modifiers[stat]) for stat in stats]) + "\t|\n"
         s += "Save proficiencies:\n  " + "\n  ".join([save + (' x{}'.format(self.save_proficiencies[save]) if self.save_proficiencies[save] != 1 else "") for save in saves if self.save_proficiencies[save] != 0]) + "\n"
@@ -98,8 +104,8 @@ class Character:
             self.save_proficiencies[attribute] = float(newval)
         elif attribute in skills:
             self.skill_proficiencies[attribute] = float(newval)
-        elif "bonus" in attribute or "prof" in attribute:
-            self.proficiency_bonus = int(newval)
+        elif attribute == "level":
+            self.level = int(newval)
         else:
             raise KeyError(attribute)
     

@@ -1,7 +1,7 @@
 import util
 import re
 
-_expression_regex = re.compile(r"(?P<label>\w*)=(?P<expr>[\d\*\+-/]+)$")
+_expression_regex = re.compile(r"(?P<label>\w*)=(?P<expr>[\d\.\*\+-/]+)$")
 
 def is_expression(arg: str) -> bool:
     """Determines if the given string is an expression."""
@@ -9,8 +9,10 @@ def is_expression(arg: str) -> bool:
 
 def parse_math(arg: str) -> float:
     """A basic parser for math. Evaluates a string like '3+2.5*-2' to be -11.0. Returns a float."""
-    if arg[0] == '=':
-        arg = arg[1:]
+    if match := _expression_regex.match(arg):
+        arg = match.group('expr')
+    else:
+        raise util.ParseException("Failure: '{}' is not an expression.".format(arg))
 
     result = 0.0
     nextop = result.__add__
@@ -21,12 +23,10 @@ def parse_math(arg: str) -> float:
             num += c
         elif not num and c == '-':
             num = '-'
-        elif c in '+-*/':
+        else:
             result = nextop(float(num))
             num = ''
             nextop = {'+':result.__add__, '-':result.__sub__, '*':result.__mul__, '/':result.__truediv__}[c]
-        else:
-            raise util.ParseException("Failure: '{}' is not an expression.".format(arg))
     result = nextop(float(num))
     return result
 
@@ -34,7 +34,7 @@ class Expression:
     def __init__(self, arg: str):
         if match := _expression_regex.match(arg):
             self.label = match.group('label')
-            self.value = int(parse_math(match.group("expr")))
+            self.value = int(parse_math(arg))
         else:
             raise util.ParseException("Failure: cannot parse '{}' as expression.".format(arg))
     

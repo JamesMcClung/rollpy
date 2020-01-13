@@ -12,13 +12,13 @@ def is_modifier(arg: str) -> bool:
     return arg[0] == MODIFIER_INDICATOR
 
 # regexes used to extract information from modifier strings
-_target_patternstr = r"^\.(@(?P<target>\w+):)?"
+_target_patternstr = r"\.(@(?P<target>\w+):)?"
 _target_regex = re.compile(_target_patternstr)
 _bonus_regex = re.compile(_target_patternstr + r"(?P<val>[\+-]\d+)$")
 _count_regex = re.compile(_target_patternstr + r"count(?P<type>[\*\+])?=(?P<val>\d+)$")
 _highlow_regex = re.compile(_target_patternstr + r"(?P<type>[hl])(?P<val>\d+)$")
 _reroll_regex = re.compile(_target_patternstr + r"r(?P<val>\d+)$")
-_label_regex = re.compile(_target_patternstr + r"label=(?P<val>)$")
+_label_regex = re.compile(_target_patternstr + r"label?=(?P<val>\w+)$")
 
 def modify(roll, arg: str):
     """Modifies the given roll (or rolls, if a group was passed) according to the given arg (a modifier)."""
@@ -38,31 +38,37 @@ def modify(roll, arg: str):
         if target and roll.label != target:
             return
 
+    # bonus modifier
     if match := _bonus_regex.match(arg):
-        # change the roll's bonus
         roll.bonus += int(match.group("val"))
+    
+    # count modifier
     elif match := _count_regex.match(arg):
-        # change the number of dice in the roll
         val = int(match.group("val"))
-        if type := match.group("type") == "*":
+        if (type := match.group("type")) == "*":
             roll.count *= val
         elif type == '+':
             roll.count += val
         else:
             roll.count = val
+    
+    # high or low modifier
     elif match := _highlow_regex.match(arg):
-        # change the number of dice to take, whether the highest or lowest
         val = int(match.group("val"))
         if match.group("type") == "h":
             roll.ceil = val
         else:
             roll.floor = val
+    
+    # label modifier
     elif match := _label_regex.match(arg):
-        # change the label
         roll.label = match.group("val")
+    
+    # reroll modifier
     elif match := _reroll_regex.match(arg):
-        # change the reroll threshhold
         roll.reroll = int(match.group("val"))
+    
+    # invalid modifier
     else:
         raise util.ParseException("Invalid modifier: '{}'".format(arg))
 

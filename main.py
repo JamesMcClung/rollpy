@@ -12,7 +12,7 @@ args = sys.argv[1:]
 
 # check if input was given
 if not args:
-    raise Exception("Expected inputs; none given")
+    args = input("Enter args: ").split()
 
 # interpret commands
 if args[0] == "!":
